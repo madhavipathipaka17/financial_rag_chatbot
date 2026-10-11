@@ -3,13 +3,14 @@ from src.chains import ask_question
 
 st.set_page_config(
     page_title="Financial RAG Chatbot",
+    page_icon="📊",
     layout="wide",
 )
 
-st.title("Financial RAG Chatbot")
+st.title("📊 Financial RAG Chatbot")
 st.caption(
-    "Hi,Ask questions about NVIDIA annual reports"
-    
+    "Ask questions about NVIDIA annual reports using "
+    "FAISS, Hugging Face embeddings, and Qwen 2.5."
 )
 
 SAMPLE_QUESTIONS = [
@@ -20,7 +21,7 @@ SAMPLE_QUESTIONS = [
 ]
 
 with st.sidebar:
-    st.header("Sample Questions")
+    st.header("💡 Sample Questions")
     st.write("Choose a question to try the chatbot.")
     for i, sample in enumerate(SAMPLE_QUESTIONS):
         if st.button(sample, key=f"sample_{i}", use_container_width=True):
@@ -35,7 +36,7 @@ with st.sidebar:
     )
     st.caption("LLM: Qwen 2.5:3B · Local inference with Ollama")
 
-    if st.button("Clear conversation", use_container_width=True):
+    if st.button("🗑️ Clear conversation", use_container_width=True):
         st.session_state.messages = []
         st.session_state.pending_question = None
         st.rerun()
@@ -43,15 +44,16 @@ with st.sidebar:
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# --- SEQUENTIAL FULL-WIDTH CHAT HISTORY (NO EMOJIS, NO SIDE COLUMNS, NO SOURCES) ---
+# --- CHAT HISTORY (QUES ON LEFT, ANS ON RIGHT WITH EMOJIS) ---
 for message in st.session_state.messages:
-    with st.container(border=True):
-        if message["role"] == "user":
-            st.markdown("**User:**")
-            st.markdown(message["content"])
-        else:
-            st.markdown("**Assistant:**")
-            st.markdown(message["content"])
+    if message["role"] == "user":
+        left, right = st.columns([2, 1])  # 2/3 width on the left
+        with left:
+            st.info(f"🧑 Your Question\n\n{message['content']}")
+    else:
+        left, right = st.columns([1, 2])  # 2/3 width on the right
+        with right:
+            st.success(f"🤖 AI Answer\n\n{message['content']}")
 
 # --- CHAT INPUT HANDLING ---
 typed_question = st.chat_input("Ask a question about NVIDIA's financial reports...")
@@ -59,20 +61,20 @@ sample_question = st.session_state.pop("pending_question", None)
 question = typed_question or sample_question
 
 if question:
-    # Save and display user question
+    # 1. Save and display user question on the left side immediately
     st.session_state.messages.append({"role": "user", "content": question})
-    with st.container(border=True):
-        st.markdown("**User:**")
-        st.markdown(question)
+    left_live, right_live = st.columns([2, 1])
+    with left_live:
+        st.info(f"🧑 Your Question\n\n{question}")
 
-    # Generate and display assistant answer sequentially
-    with st.container(border=True):
-        st.markdown("**Assistant:**")
+    # 2. Generate and display assistant answer on the right side
+    left_ans, right_ans = st.columns([1, 2])
+    with right_ans:
         with st.spinner("Searching reports and generating an answer..."):
             try:
-                # Execute the chain (ignoring the returned documents metadata)
+                # Execute the chain ignoring returned documents metadata
                 answer, _ = ask_question(question)
-                st.markdown(answer)
+                st.success(f"🤖 AI Answer\n\n{answer}")
 
                 st.session_state.messages.append({
                     "role": "assistant",
